@@ -72,3 +72,35 @@ jobs:
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
             -Dsonar.exclusions='**/js/**,**/node_modules/**' \
             --no-transfer-progress
+
+      - name: Wait for SonarQube processing
+        run: sleep 30
+
+      - name: Download SonarQube analysis results
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          # Get project measures
+          curl -u ${{ secrets.SONAR_TOKEN }}: \
+            "${{ secrets.SONAR_HOST_URL }}/api/measures/component?component=Keycloak-log8371e&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,security_hotspots" \
+            -o sonarqube-measures.json
+
+          # Get issues
+          curl -u ${{ secrets.SONAR_TOKEN }}: \
+            "${{ secrets.SONAR_HOST_URL }}/api/issues/search?componentKeys=Keycloak-log8371e&ps=500&resolved=false" \
+            -o sonarqube-issues.json
+
+          # Get quality gate status
+          curl -u ${{ secrets.SONAR_TOKEN }}: \
+            "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=Keycloak-log8371e" \
+            -o sonarqube-quality-gate.json
+
+      - name: Upload SonarQube reports as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonarqube-reports
+          path: |
+            sonarqube-measures.json
+            sonarqube-issues.json
+            sonarqube-quality-gate.json
