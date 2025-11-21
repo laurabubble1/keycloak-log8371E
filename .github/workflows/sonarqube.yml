@@ -53,16 +53,22 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build and analyze with Maven (Java only)
+      - name: Build with Maven (Java only)
+        timeout-minutes: 60
+        run: |
+          ./mvnw clean install -DskipTests -Dmaven.javadoc.skip=true -pl '!js' -pl '!:keycloak-js-parent' --no-transfer-progress
+
+      - name: Run SonarQube analysis
+        timeout-minutes: 30
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # Generate a token on SonarQube, add it to the secrets of this repo with the name SONAR_TOKEN (Settings > Secrets > Actions > add new repository secret)
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}   # add the URL of your instance to the secrets of this repo with the name SONAR_HOST_URL (Settings > Secrets > Actions > add new repository secret)
         run: |
-          ./mvnw clean install -DskipTests -Dmaven.javadoc.skip=true -pl '!js' -pl '!:keycloak-js-parent'
           ./mvnw org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -pl '!js' -pl '!:keycloak-js-parent' \
             -Dsonar.projectKey=Keycloak-log8371e \
             -Dsonar.projectName='Keycloak-log8371e' \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
-            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
+            --no-transfer-progress
